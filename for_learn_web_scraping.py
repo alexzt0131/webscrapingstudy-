@@ -1,3 +1,4 @@
+import re
 import urllib.request
 
 
@@ -33,12 +34,35 @@ def download_page(url, user_agent='wswp',retries=2):
 
     return html
 
+def crawl_sitemap(rul):
+    '''
+    下载网站sitemap文件通过re解析链接并下载所有链接
+    示例网站已修改 并无<loc>
+    :param rul:
+    :return:
+    '''
+    #下载sitemap文件
+    sitemap = download_page(url)
+
+    links = re.findall('http', sitemap)
+    print(links)
+    for link in links:
+        print('link:%s'%(link))
+        # html = download_page(link)
+
+
+
+
+
+
 
 if __name__ == '__main__':
     # url = 'http://httpstat.us/500'
-    url = 'http://www.meetup.com/'
-    html = download_page(url)
-    print(html)
+    # url = 'http://www.meetup.com/'
+    url = 'http://example.webscraping.com/sitemap.xml'
+    crawl_sitemap(url)
+    # html = download_page(url)
+    # print(html)
 
 
     # print(html)
