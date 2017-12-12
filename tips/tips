@@ -1,0 +1,20 @@
+1.python 3.X版本是不需要安装：urllib2包的，urllib和urllib2包集合成在一个包了
+
+那现在问题是：
+
+在python3.x版本中，如何使用：urllib2.urlopen()？
+
+答：
+
+import urllib.request
+
+resp=urllib.request.urlopen("http://www.baidu.com")
+
+
+需要
+
+python3 -m pip install robotparser
+python3 -m pip install requests
+python3 -m pip install BeautifulSoup
+python3 -m pip install lxml
+python3 -m pip install cssselect 

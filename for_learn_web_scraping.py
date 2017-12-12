@@ -4,8 +4,11 @@ import urllib.request
 import itertools
 from urllib import robotparser
 from urllib.parse import urljoin, urlparse, urldefrag
-import requests
 
+import lxml.html
+import os
+import requests
+import subprocess
 
 
 # def download_page(url, user_agent='wswp',retries=2):
@@ -37,6 +40,9 @@ import requests
 #
 #
 #     return html
+from bs4 import BeautifulSoup
+from requests.exceptions import ProxyError
+
 from itools import commtools
 
 
@@ -166,7 +172,7 @@ def get_links(html):
 #该函数待测试
 def link_crawler(seed_url, link_regex, delay=2, headers=None, user_agent='wswp', max_depth=1, max_urls=-1):
     '''
-    下载种子页面中的所有链接
+    下载种子页面中的所有链接(跟踪链接的方式)
     :param seed_url:
     :param link_regex:
     :param delay:
@@ -194,7 +200,7 @@ def link_crawler(seed_url, link_regex, delay=2, headers=None, user_agent='wswp',
         #     print('根据该网站robots.txt文件，此user_agent不允许搜索数据。')
         #     break
         # if is_user_agent_available(url=url, user_agent=user_agent):#暂不启用该功能
-        throttle.wait(url)
+        throttle.wait(url)#按照延迟等待下一次下载
         html = download_page(url)#下载该url链接
         links = []
 
@@ -206,7 +212,7 @@ def link_crawler(seed_url, link_regex, delay=2, headers=None, user_agent='wswp',
                 links.extend(link for link in get_links(html) if re.match(link_regex, link))
 
             for link in links:
-                link = normalize(seed_url, link)
+                link = normalize(seed_url, link)#将链接于seed_url拼接在一起
                 # check whether already crawled this link
                 if link not in seen:#可以通过 关键词 in dict 来查找是否包含此关键此的元素
                     seen[link] = depth + 1
@@ -273,8 +279,135 @@ def is_user_agent_available(url=r'http://example.webscraping.com', user_agent='w
     return rp.can_fetch(user_agent, url)
 
 
+def bstest1():
+    '''
+    BeautifulSoup简单的解析过程
+    :return:
+    '''
+    url = 'http://example.webscraping.com/places/default/view/United-Kingdom-239'
+    html = download_page(url)
+    #解析下载的html BeautifulSoup(html)不指定parser的情况下
+    #会提示自动用最合适的parser来解析
+    soup = BeautifulSoup(html)
+    #依次根据attrs来过滤需要的数据
+    tr = soup.find(attrs={'id': 'places_area__row'})
+    td = tr.find(attrs={'class': 'w2p_fw'})
+    area = td.text
+    print(area)
+
+def lxmltest1():
+    #用以下3行代码来修复可能不完整的html
+    url = 'http://example.webscraping.com/places/default/view/United-Kingdom-239'
+    bronk_html = download_page(url)
+    tree = lxml.html.fromstring(bronk_html)
+    fixed_html = lxml.html.tostring(tree, pretty_print=True)
+    # print(fixed_html)
+    #用lxml的css选择器来抽取需要的数据
+    td = tree.cssselect('tr#places_area__row > td.w2p_fw')[0]
+    area = td.text_content()
+    print(area)
+
+def get_proxies(url='', cssselect=''):
+    '''
+    返回网站上抓到的代理地址
+    :param url:
+    :param cssselect:
+    :return:
+    '''
+    # 用以下3行代码来修复可能不完整的html
+    url = 'http://www.kuaidaili.com/free/intr/'
+    bronk_html = download_page(url)
+    tree = lxml.html.fromstring(bronk_html)
+    # fixed_html = lxml.html.tostring(tree, pretty_print=True)
+    # 用lxml的css选择器来抽取需要的数据
+    tds = tree.cssselect('tbody > tr')
+    total = len(tds)
+    count = 1
+
+    result = []
+    def is_ip_available(proxies):
+        headers = {'User-agent': 'alex'}
+        # flag = os.system('ping -c 1 %s' % proxy_ip.split(':')[0])  # int型可用返回0,不可用256
+        #subprocess.getstatusoutput 第一个参数获得状态，第二个获得输出
+        print('ping testing...')
+        flag = subprocess.getstatusoutput('ping -c 1 %s' % proxy_ip.split(':')[0])# 可用返回0,不可用256
+        if flag[0] == 0:
+            try:
+                print('checking status code...')
+                html = requests.get(url='http://ip.chinaz.com', proxies=proxies, headers=headers)
+                if html.status_code == 200:
+                    print('proxy %s---status code is %s' % (proxies, html.status_code))
+                    return True
+            except ProxyError as e:
+                return None
+
+    for td in tds:
+        print('now %s/%s' %(count, total))
+        ip = td[0].text
+        port = td[1].text
+
+        proxy_ip = '%s:%s' % (ip, port)
+        proxies = {"http": "http://%s" % proxy_ip, "https": "http://%s" % proxy_ip, }
+        if is_ip_available(proxies):
+            result.append(proxy_ip)
+        else:
+            print('%s is invalid' % proxy_ip)
+        print("-" * 88)
+        count += 1
+
+    return result
+
+
 if __name__ == '__main__':
-    proxies = None
+    print(get_proxies())
+
+
+
+    # proxies = None
+    # ips = [
+    #     '119.130.115.226:808',
+    #     '163.125.16.200:8888',
+    #     '202.109.207.126:8888',
+    #     '113.76.96.79:9797',
+    #     '113.65.21.37:9797',
+    #     '222.85.127.130:9797',
+    #     '222.85.127.130:9999',
+    #     '124.207.82.166:8008',
+    #     '222.85.2.12:8089',
+    #     '1.202.193.18:9000',
+    #     '124.205.155.154:9090',
+    #     '116.236.151.166:8080',
+    #     '221.214.110.130:8080',
+    #     '111.40.84.73:9797',
+    #     '163.125.16.215:8888',
+    # ]
+    # result = []
+    # for ip in ips:
+    #     proxy_ip = ip
+    #     headers = {'User-agent': 'alex'}
+    #     proxies = {"http": "http://%s" % proxy_ip, "https": "http://%s" % proxy_ip, }
+    #     print(proxies)
+    #     flag = os.system('ping -c 1 %s' % proxy_ip.split(':')[0])  # int型可用返回0,不可用256
+    #     if flag == 0:
+    #         print('%s passed ping.' % proxy_ip.split(':')[0])
+    #
+    #         # html = download_page(url='http://www.baidu.com', proxies=proxies)
+    #         try:
+    #             html = requests.get(url='http://ip.chinaz.com', proxies=proxies, headers=headers)
+    #             print(html.status_code)
+    #             result.append(ip)
+    #         except ProxyError as e:
+    #             print('%s can not be proxy.' % proxy_ip)
+    #
+    #
+    # print(result)
+
+
+
+
+
+
+
     # proxies = {"http": "http://218.4.199.94:3128", "https": "http://218.4.199.94:3128", }
     # url = 'http://ip.chinaz.com'
     # url = 'http://www.asdfas.com/asdfjke.html'
@@ -283,6 +416,7 @@ if __name__ == '__main__':
     # print(html)
 
 
+    # print(soup.text)
 
 
 
@@ -296,7 +430,7 @@ if __name__ == '__main__':
     #     download_page(url=url)
 
     # url = 'http://httpstat.us/500'
-    url = 'http://www.meetup.com/'
+    # url = 'http://www.meetup.com/'
     # url = 'http://example.webscraping.com/sitemap.xml'
     # crawl_sitemap(url)
     # html = download_page(url)
@@ -305,7 +439,7 @@ if __name__ == '__main__':
     # print(html)
     # link_crawler(seed_url='http://example.webscraping.com/index', link_regex='/(index|view)')
     # link_crawler('http://example.webscraping.com', '/(index|view)')
-    link_crawler('http://example.webscraping.com', '/places/default/(index|view)')
+    # link_crawler('http://example.webscraping.com', '/places/default/(index|view)')
     # with open('/home/alex/test.html', 'w+') as file:
     # a = download_page('http://example.webscraping.com')
     # print(get_links(a))
