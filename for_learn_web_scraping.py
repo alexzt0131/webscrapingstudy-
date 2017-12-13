@@ -1,3 +1,4 @@
+import csv
 import re
 import urllib.request
 # from itertools import count
@@ -44,6 +45,47 @@ from bs4 import BeautifulSoup
 from requests.exceptions import ProxyError
 
 from itools import commtools
+
+
+
+
+class ScrapeCallback:
+    '''
+    此类用来作为链接爬虫的回调函数
+    发生时间取决于调用时间
+    本次例子中发生在网页下载完成
+    '''
+    def __init__(self):
+        self.writer = csv.writer(open('/home/alex/testcsv.csv', 'w'))#初始化时 实例化一个csv.writer
+        self.fields = (
+            'area',
+            'population',
+            'iso',
+            'country',
+            'capital',
+            'continent',
+            'tld',
+            'currency_code',
+            'currency_name',
+            'phone',
+            'postal_code_format',
+            'postal_code_regex',
+            'languages',
+            'neighbours',
+        )
+        self.writer.writerow(self.fields)
+
+    def __call__(self, url, html):#函数内对象被作为函数调用的情况下__call__函数就会被调用scrap_callback(url, html)与scrap_callback.__call__(url, html)相同
+        if re.search('/view/', html):#判断
+            tree = lxml.html.fromstring(html)
+            row = []
+            for field in self.fields:
+                result = tree.cssselect('tr#places_{}__row > td.w2p_fw'.format(field))[0].text_content()
+                print('{}: {}'.format(field, result))
+                row.append(result)
+            print('-' * 88)
+            self.writer.writerow(row)
+
 
 
 def download_page(url, user_agent='wswp', proxies=None, retries=2):
@@ -170,7 +212,7 @@ def get_links(html):
 #                     crawl_queue.append(link)
 
 #该函数待测试
-def link_crawler(seed_url, link_regex, delay=2, headers=None, user_agent='wswp', max_depth=1, max_urls=-1):
+def link_crawler(seed_url, link_regex, delay=2, headers=None, user_agent='wswp', max_depth=-1, max_urls=-1, scrape_callback=None):
     '''
     下载种子页面中的所有链接(跟踪链接的方式)
     :param seed_url:
@@ -191,6 +233,7 @@ def link_crawler(seed_url, link_regex, delay=2, headers=None, user_agent='wswp',
     headers = headers or {}
     if user_agent:
         headers['User-agent'] = user_agent
+    errlogs = []
 
     while crawl_queue:#while true 死循环
         # print(crawl_queue)
@@ -202,8 +245,16 @@ def link_crawler(seed_url, link_regex, delay=2, headers=None, user_agent='wswp',
         # if is_user_agent_available(url=url, user_agent=user_agent):#暂不启用该功能
         throttle.wait(url)#按照延迟等待下一次下载
         html = download_page(url)#下载该url链接
-        links = []
 
+        links = []
+        if scrape_callback:#网页下载完成查看是否传入回调类，如果有就扩展到links中。（不明白没有返回值的类为什么能扩展到links中）
+            #只需要对scrape_callback类定制就可以下载别的网页了。
+            try:
+                links.extend(scrape_callback(url, html) or [])
+            except Exception as e:
+                errlog = 'url={}   errmsg={}'.format(url, str(e))
+                errlogs.append(errlog)
+                print(errlog)
         depth = seen[url]#取该url的深度
         if depth != max_depth:
 
@@ -339,6 +390,7 @@ def get_proxies(url='', cssselect=''):
                     print('proxy %s---status code is %s' % (proxies, html.status_code))
                     return True
             except ProxyError as e:
+                print(e)
                 return None
 
     for td in tds:
@@ -358,8 +410,27 @@ def get_proxies(url='', cssselect=''):
     return result
 
 
+
 if __name__ == '__main__':
-    print(get_proxies())
+    # print(get_proxies())
+    url = 'http://example.webscraping.com/places/default/view/United-Kingdom-239'
+    #
+    # writer = csv.writer(open('/home/alex/test.csv', 'w'))
+    # writer.writerow(('123', '456'))
+
+    link_crawler(seed_url='http://example.webscraping.com/', max_depth=3, link_regex='/places/default/(view|index)', scrape_callback=ScrapeCallback())
+    # html = download_page(url)
+    # tree = lxml.html.fromstring(html)
+    # # print(tree.text_content())
+    # a = tree.cssselect('tr#places_area__row > td.w2p_fw')
+    # # print(a)
+    # # print(a[0].text_content())
+    # for i in a:
+    #     print(i.text_content())
+
+
+
+
 
 
 
@@ -437,7 +508,6 @@ if __name__ == '__main__':
     # print(html)
     # get_available_page()
     # print(html)
-    # link_crawler(seed_url='http://example.webscraping.com/index', link_regex='/(index|view)')
     # link_crawler('http://example.webscraping.com', '/(index|view)')
     # link_crawler('http://example.webscraping.com', '/places/default/(index|view)')
     # with open('/home/alex/test.html', 'w+') as file:

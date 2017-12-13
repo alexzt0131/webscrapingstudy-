@@ -18,3 +18,7 @@ python3 -m pip install requests
 python3 -m pip install BeautifulSoup
 python3 -m pip install lxml
 python3 -m pip install cssselect 
+
+
+下载网页时用什么模块都无所谓
+抽取数据时用lxml使用方便速度还快，试Beautiful Soup的6倍之多
