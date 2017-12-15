@@ -4,7 +4,7 @@ import urllib.request
 # from itertools import count
 import itertools
 from urllib import robotparser
-from urllib.parse import urljoin, urlparse, urldefrag
+from urllib.parse import urljoin, urlparse, urldefrag, urlsplit
 
 import lxml.html
 import os
@@ -45,8 +45,7 @@ from bs4 import BeautifulSoup
 from requests.exceptions import ProxyError
 
 from itools import commtools
-
-
+from itools.commtools import Downloader
 
 
 class ScrapeCallback:
@@ -108,25 +107,28 @@ def download_page(url, user_agent='wswp', proxies=None, retries=2):
     from requests.exceptions import ProxyError
     try:
         # html = urllib.request.urlopen(request).read().decode('utf8')#urllib方法获得，ip代理麻烦
-        html = requests.get(url=url, proxies=proxies, headers=headers).text#新版用requests模块来获取页面
+        rets = requests.get(url=url, proxies=proxies, headers=headers)#新版用requests模块来获取页面
+        # html = requests.get(url=url, proxies=proxies, headers=headers).text#新版用requests模块来获取页面
+        html = rets.text
+        if 500 <= rets.status_code < 600:
+            print('5xx error.....')
+            if retries > 0:
+                # if hasattr(e, 'code') and 500 <= e.code <600:
+                    #__dict__中有code属性并且是5XX的只在服务器错误的情况下重试
+                    # return download_page(url=url, proxys=proxys, retries=retries-1)#递归方法重试
+                #*****在这里加一个测试代理ip是否可用的函数来确定是否更换proxys变量*****
+                return download_page(url=url, proxies=proxies, retries=retries-1)#递归方法重试
+    # except requests.ConnectionError as e:
+    except Exception as e:
+        print("In exception download error %s" % e)
+        print(e.args)
 
-    except requests.ConnectionError as e:
-
-        print("Down error %s"%(str(e)))
-        # print(e.__dir__())
-        # print(e.__class__)
-        # print(e.errno)
-
-        if retries > 0:
-            # if hasattr(e, 'code') and 500 <= e.code <600:
-                #__dict__中有code属性并且是5XX的只在服务器错误的情况下重试
-                # return download_page(url=url, proxys=proxys, retries=retries-1)#递归方法重试
-            #*****在这里加一个测试代理ip是否可用的函数来确定是否更换proxys变量*****
-            return download_page(url=url, proxies=proxies, retries=retries-1)#递归方法重试
-
-
-
-
+        # if retries > 0:
+        #     # if hasattr(e, 'code') and 500 <= e.code <600:
+        #         #__dict__中有code属性并且是5XX的只在服务器错误的情况下重试
+        #         # return download_page(url=url, proxys=proxys, retries=retries-1)#递归方法重试
+        #     #*****在这里加一个测试代理ip是否可用的函数来确定是否更换proxys变量*****
+        #     return download_page(url=url, proxies=proxies, retries=retries-1)#递归方法重试
 
     return html
 
@@ -413,12 +415,28 @@ def get_proxies(url='', cssselect=''):
 
 if __name__ == '__main__':
     # print(get_proxies())
-    url = 'http://example.webscraping.com/places/default/view/United-Kingdom-239'
+    # url = 'http://example.webscraping.com/places/default/view/United-Kingdom-239'
+    url = 'http://httpstat.us/500'
+    url = 'http://exampl.webscraping.com/index/'
+
+    component = urlsplit(url)
+    print(component)
+    print(type(component))
+
+    path = component.path
+    if not path:
+        path = '/index.html'
+    elif path.endswith('/'):
+        path += 'index.html'
+    filename = component.netloc + path + component.query
+    print(filename)
+
+
     #
     # writer = csv.writer(open('/home/alex/test.csv', 'w'))
     # writer.writerow(('123', '456'))
 
-    link_crawler(seed_url='http://example.webscraping.com/', max_depth=3, link_regex='/places/default/(view|index)', scrape_callback=ScrapeCallback())
+    # link_crawler(seed_url='http://example.webscraping.com/', max_depth=3, link_regex='/places/default/(view|index)', scrape_callback=ScrapeCallback())
     # html = download_page(url)
     # tree = lxml.html.fromstring(html)
     # # print(tree.text_content())
