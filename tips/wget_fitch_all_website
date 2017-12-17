@@ -1,0 +1,4 @@
+整站下载  --restrict-file-names=nocontrol 支持中文
+
+wget --restrict-file-names=nocontrol -r -p -np -k http://www.bjbaoquan.com/
+

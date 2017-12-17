@@ -1,50 +1,18 @@
 import csv
+import datetime
 import re
 import urllib.request
-# from itertools import count
 import itertools
 from urllib import robotparser
 from urllib.parse import urljoin, urlparse, urldefrag, urlsplit
-
 import lxml.html
 import os
 import requests
 import subprocess
-
-
-# def download_page(url, user_agent='wswp',retries=2):
-#     '''
-#     简单的下载页面示例
-#     python2的urllib2 在python3中改为了urllib.requests
-#     :param url:
-#     :param retries: 重试次数，作为递归的依据
-#     :param user_agent: 自定义用户代理，某些网站不能用python默认代理
-#     :return:
-#     '''
-#     print('downloading:%s'%(url))
-#     html = None
-#     headers = {'User-agent': user_agent}
-#     request = urllib.request.Request(url=url, headers=headers)#可以建立一个request传入rulopen
-#     try:
-#         html = urllib.request.urlopen(request).read().decode('utf8')
-#
-#     except Exception as e:
-#     # except urllib.request.URLError as e:
-#         print("Down error %s"%(str(e)))
-#
-#         if retries > 0:
-#             if hasattr(e, 'code') and 500 <= e.code <600:
-#                 #__dict__中有code属性并且是5XX的只在服务器错误的情况下重试
-#                 return download_page(url=url, retries=retries-1)#递归方法重试
-#
-#
-#
-#
-#     return html
 from bs4 import BeautifulSoup
 from requests.exceptions import ProxyError
-
 from itools import commtools
+from itools import ceshi
 from itools.commtools import Downloader
 
 
@@ -416,27 +384,50 @@ def get_proxies(url='', cssselect=''):
 if __name__ == '__main__':
     # print(get_proxies())
     # url = 'http://example.webscraping.com/places/default/view/United-Kingdom-239'
-    url = 'http://httpstat.us/500'
-    url = 'http://exampl.webscraping.com/index/'
+    # url = 'http://httpstat.us/500'
+    # url = 'http://exampl.webscraping.com/'
+    url = 'http://bbs.pythontab.com/forum-3-1.html'
+    # url = 'http://www.baidu.com/'
 
-    component = urlsplit(url)
-    print(component)
-    print(type(component))
+    # component = urlsplit(url)
+    # print(component)
+    # print(type(component))
+    #
+    # path = component.path
+    # if not path:
+    #     path = '/index.html'
+    # elif path.endswith('/'):
+    #     path += 'index.html'
+    # filename = component.netloc + path + component.query
+    # print(filename)
 
-    path = component.path
-    if not path:
-        path = '/index.html'
-    elif path.endswith('/'):
-        path += 'index.html'
-    filename = component.netloc + path + component.query
-    print(filename)
 
 
+
+
+
+
+    # linkx = 'http://www.a.com/p/'
+    # link_regex = '.*/p/'
+    # a = re.match(link_regex, linkx)
+    # print(a)
+
+    from itools.link_crawer import link_crawler
+    # link_regex = '/places/default/(view|index)'
+    #
+    link_regex = 'thread-.*-1-'
+    # print(link_regex)
+    a = datetime.datetime.now()
+    link_crawler(seed_url=url, delay=5, link_regex=link_regex, max_depth=1, cache=ceshi.DiskCache(cache_dir='/home/alex/cachedir'))
+    b = datetime.datetime.now()
+
+    print(b - a)
+    # return rp.can_fetch(user_agent, url)
     #
     # writer = csv.writer(open('/home/alex/test.csv', 'w'))
     # writer.writerow(('123', '456'))
 
-    # link_crawler(seed_url='http://example.webscraping.com/', max_depth=3, link_regex='/places/default/(view|index)', scrape_callback=ScrapeCallback())
+    # link_crawler(seed_url='http://example.webscraping.com/', max_depth=1, link_regex='/places/default/(view|index)', scrape_callback=ScrapeCallback())
     # html = download_page(url)
     # tree = lxml.html.fromstring(html)
     # # print(tree.text_content())

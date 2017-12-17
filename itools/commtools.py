@@ -41,13 +41,14 @@ class Downloader:
         if self.cache:
             try:
                 result = self.cache[url]
+                print('{}  --  has cache'.format(url))
             except KeyError:
                 # url is not available in cache
                 pass
-            else:
-                if self.num_retries > 0 and 500 <= result['code'] < 600:
-                    # server error so ignore result from cache and re-download
-                    result = None
+            # else:
+            #     if self.num_retries > 0 and 500 <= result['code'] < 600:
+            #         # server error so ignore result from cache and re-download
+            #         result = None
         if result is None:
             # result was not loaded from cache so still need to download
             self.throttle.wait(url)
@@ -87,6 +88,7 @@ class Downloader:
                 # return self._get(url, headers, proxy, num_retries - 1, data)  # 递归方法重试
         except Exception as e:
             print('Download error:%s' % str(e))
+            code = str(e)
             # return self._get(url, headers, proxy, num_retries - 1, data)
             # html = ''
             # if hasattr(e, 'code'):
