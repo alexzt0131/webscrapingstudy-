@@ -11,7 +11,7 @@ import requests
 import subprocess
 from bs4 import BeautifulSoup
 from requests.exceptions import ProxyError
-from itools import commtools
+from itools import commtools, mongo
 from itools import ceshi
 from itools.commtools import Downloader
 
@@ -418,10 +418,11 @@ if __name__ == '__main__':
     link_regex = 'thread-.*-1-'
     # print(link_regex)
     a = datetime.datetime.now()
-    link_crawler(seed_url=url, delay=5, link_regex=link_regex, max_depth=1, cache=ceshi.DiskCache(cache_dir='/home/alex/cachedir'))
+    # link_crawler(seed_url=url, delay=5, link_regex=link_regex, max_depth=1, cache=ceshi.DiskCache(cache_dir='/home/alex/cachedir'))
+    link_crawler(seed_url=url, delay=5, link_regex=link_regex, max_depth=1, cache=mongo.MongoCache())
     b = datetime.datetime.now()
 
-    print(b - a)
+    print((b - a).total_seconds())
     # return rp.can_fetch(user_agent, url)
     #
     # writer = csv.writer(open('/home/alex/test.csv', 'w'))

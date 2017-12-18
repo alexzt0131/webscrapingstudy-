@@ -17,6 +17,14 @@ except ImportError:
 
 class DiskCache:
     """
+    磁盘缓冲有很多缺陷，比如url映射为文件名会有重复的比如query- /？a+b and /?a-b都会得到同一个文件名
+    磁盘的文件数也会有限制fat32是65535个
+    ext4达到1500万个，可大网站动辄就上亿页面
+    改善方法是使用类似B+树的算法进行索引，我们使用已经实现这类算法的数据库来实现
+
+
+    实现__getitem__和__setitem__可以让类以 类名[‘数据’]的方式来存储读取数据
+    具体由实现决定
     Dictionary interface that stores cached
     values in the file system rather than in memory.
     The file path is formed from an md5 hash of the key.
